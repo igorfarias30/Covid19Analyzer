@@ -1,6 +1,24 @@
 import pandas as pd
-import numpy as np
 import os
+
+
+def process_datetime(date_: str):
+    """ Pre process the datetime on dataset
+    
+    Arguments:
+        date_ {str} -- date string
+    
+    Returns:
+        [type] -- date with type as datetime
+    """
+
+    month, day, year = date_.split('/')
+    return '-'.join([
+            '20' + year, 
+            '0' + month if int(month) < 10 else month, 
+            '0' + day if int(day) < 10 else day
+    ])
+
 
 def fetch(url: str) -> pd:
     """Fetch the CoVid-19 data provide by api hosted on heroku 
@@ -17,12 +35,22 @@ def fetch(url: str) -> pd:
 
     for type_ in data.index[:-1]:
         for country in data.loc[type_, 'locations']:
-            
             aux = pd.DataFrame(data = country, columns = country.keys()).reset_index()
+            
             index_ = aux[aux['index'].isin(['lat', 'long'])].index
             aux['lat'], aux['long'] = list(aux.loc[index_, 'coordinates'].values)
             aux.drop(index=index_, columns=['coordinates'], inplace=True)
+            
             aux.rename(columns={'index': 'datetime'}, inplace=True)
+            aux['datetime'] = aux['datetime']\
+                .apply(
+                    lambda date_string: pd.to_datetime(
+                        process_datetime(date_string), 
+                        format="%Y-%m-%d", 
+                        errors ="coerce"
+                    )
+                )
+            
             aux.loc[:, 'type'] = type_
 
             cases = pd.concat([cases, aux])
@@ -39,4 +67,4 @@ if __name__ == '__main__':
     if not os.path.isdir('dataset'):
         os.mkdir(os.getcwd() + '/dataset')
 
-    cases.to_csv('dataset/covid19_global.csv', index=False, sep=';')
+    cases.to_csv('dataset/covid19_global.csv', index=False, sep=';', date_format='%Y-%m-%d')
