@@ -5,6 +5,23 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def process_datetime(date_: str):
+    """ Pre process the datetime on dataset
+    
+    Arguments:
+        date_ {str} -- date string
+    
+    Returns:
+        [type] -- date with type as datetime
+    """
+
+    month, day, year = date_.split('/')
+    return '-'.join([
+            '20' + year, 
+            '0' + month if int(month) < 10 else month, 
+            '0' + day if int(day) < 10 else day
+    ])
+
 
 def fetch(url: str) -> pd:
     """Fetch the CoVid-19 data provide by api hosted on heroku 
@@ -30,7 +47,13 @@ def fetch(url: str) -> pd:
             
             aux.rename(columns={'index': 'datetime'}, inplace=True)
             aux['datetime'] = aux['datetime']\
-                .apply(lambda date_string: pd.to_datetime(date_string, dayfirst=True))
+                .apply(
+                    lambda date_string: pd.to_datetime(
+                        process_datetime(date_string), 
+                        format="%Y-%m-%d", 
+                        errors ="coerce"
+                    )
+                )
             
             aux.loc[:, 'type'] = type_
 
